@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14"
+
+      - name: Build and test
+        run: |
+          npm install
+          npm test
+
+      - name: Build Docker image
+        run: |
+          docker build -t ymistercap/mon-image-ci-cd:latest .
+          docker login -u ymistercap -p ${{ secrets.DOCKERHUB_TOKEN }}
+          docker push ymistercap/mon-image-ci-cd:latest
+      - name: Deploy to Docker
+        run: |
+          curl -X POST -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${{ secrets.MY_GITHUB_TOKEN }}" \
+          https://api.github.com/repos/your-username/your-repo/dispatches \
+          --data '{"event_type": "deploy"}'
